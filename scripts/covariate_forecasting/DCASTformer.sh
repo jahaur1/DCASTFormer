@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer
+# DCASTFormer: Dual-Channel Adaptive Spatio-Temporal Transformer
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -57,7 +57,7 @@ for DATASET in "${DATASETS[@]}"; do
     MODEL_HYPER_PARAMS="{\"batch_size\": $BATCH_SIZE, \"seq_len\": $SEQ_LEN, \"horizon\": $HORIZON, \"period\": $PERIOD, \"d_model\": $D_MODEL, \"d_ff\": $D_FF, \"n_heads\": $N_HEADS, \"dropout\": $DROPOUT, \"attn_dropout\": $ATTN_DROPOUT, \"activation\": \"$ACTIVATION\", \"stable_len\": $STABLE_LEN, \"revin\": $REVIN, \"ia_layers\": $IA_LAYERS, \"ca_layers\": $CA_LAYERS, \"attn_mode\": \"$ATTN_MODE\", \"layer_order\": \"$LAYER_ORDER\", \"use_future_exog\": true, \"use_history_exog\": true, \"infer_use_future\": true, \"alpha_init\": $ALPHA, \"num_epochs\": $NUM_EPOCHS, \"patience\": $PATIENCE, \"lradj\": \"$LRADJ\", \"lr\": $LR, \"loss\": \"$LOSS\"}"
 
     echo "============================================================"
-    echo "DCASTformer on $DATASET"
+    echo "DCASTFormer on $DATASET"
     echo "  lr=$LR, alpha_init=$ALPHA"
     echo "============================================================"
 

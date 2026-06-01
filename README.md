@@ -1,12 +1,12 @@
-# DCASTformer
+# DCASTFormer
 
-DCASTformer is a dynamic covariate-aware soft-sensing forecasting model designed for difficult-to-measure target prediction with easy-to-measure covariates.
+DCASTFormer is a dynamic covariate-aware soft-sensing forecasting model designed for difficult-to-measure target prediction with easy-to-measure covariates.
 
-In many industrial and environmental monitoring scenarios, the target variable is difficult to obtain continuously or in real time, while several auxiliary variables are easier to measure and may be available over the future prediction horizon. DCASTformer is developed for this type of forecasting task, where historical target observations, historical covariates, and future available covariates need to be modeled jointly.
+In many industrial and environmental monitoring scenarios, the target variable is difficult to obtain continuously or in real time, while several auxiliary variables are easier to measure and may be available over the future prediction horizon. DCASTFormer is developed for this type of forecasting task, where historical target observations, historical covariates, and future available covariates need to be modeled jointly.
 
 ## Overview
 
-DCASTformer introduces a dynamic covariate-aware forecasting framework. Instead of simply concatenating future covariates with historical inputs, the model uses a dual-path fusion mechanism to incorporate future covariate information in a more structured way.
+DCASTFormer introduces a dynamic covariate-aware forecasting framework. Instead of simply concatenating future covariates with historical inputs, the model uses a dual-path fusion mechanism to incorporate future covariate information in a more structured way.
 
 The model contains the following main components:
 
@@ -30,7 +30,7 @@ A direct way to use these future covariates is to concatenate them with the inpu
 - independent covariate encoding may not sufficiently interact with the target representation;
 - fixed fusion strategies may not adapt well to different samples or monitoring sites.
 
-DCASTformer addresses these problems by using a dual-path adaptive fusion structure. One path injects future covariates into the historical covariate space, while the other path enhances the latent representation using future covariate embeddings. The two paths are then combined through a learnable adaptive fusion coefficient.
+DCASTFormer addresses these problems by using a dual-path adaptive fusion structure. One path injects future covariates into the historical covariate space, while the other path enhances the latent representation using future covariate embeddings. The two paths are then combined through a learnable adaptive fusion coefficient.
 
 ## Architecture
 

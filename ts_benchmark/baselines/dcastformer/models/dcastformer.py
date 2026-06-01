@@ -1,5 +1,5 @@
 """
-DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer
+DCASTFormer: Dual-Channel Adaptive Spatio-Temporal Transformer
 """
 import torch
 import torch.nn as nn

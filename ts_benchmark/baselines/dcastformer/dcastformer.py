@@ -22,7 +22,7 @@ MODEL_HYPER_PARAMS = {
 
 class DCASTformer(DeepForecastingModelBase):
     """
-    DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer.
+    DCASTFormer: Dual-Channel Adaptive Spatio-Temporal Transformer.
     """
 
     def __init__(self, **kwargs):

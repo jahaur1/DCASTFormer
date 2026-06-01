@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer
+DCASTFormer: Dual-Channel Adaptive Spatio-Temporal Transformer
 
 """
 import json, os, subprocess, sys
@@ -58,7 +58,7 @@ for dataset_name, cfg in DATASET_CONFIGS.items():
     save_path = f"{dataset_name}/DCASTformer" + ("_TP" if TP_ONLY_MODE else "")
 
     print(f"\n{'='*60}")
-    print(f"DCASTformer on {dataset_name}")
+    print(f"DCASTFormer on {dataset_name}")
     print(f"  lr={cfg['lr']}, alpha_init={cfg['alpha_init']}")
     print(f"  {cfg['note']}")
     print(f"{'='*60}\n")

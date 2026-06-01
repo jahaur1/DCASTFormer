@@ -448,7 +448,7 @@ class DeepForecastingModelBase(ModelBase):
             train_valid_data, train_ratio_in_tv, config.seq_len
         )
 
-        # 分别 fit 两个 scaler
+        # Fit two scalers separately
         if exog_dim > 0:
             # Fit scaler1 for series data
             self.scaler1.fit(train_data.values[:, :series_dim])
@@ -657,7 +657,7 @@ class DeepForecastingModelBase(ModelBase):
                 exog_values = exog_data.values
                 scaled_exog = self.scaler2.transform(exog_values)
 
-                # 保证目标列和协变量列的时间跨度长度一致
+                # Ensure the time span length of target columns and covariate columns are consistent
                 diff = scaled_exog.shape[0] - scaled_series.shape[0]
                 if diff > 0:
                     scaled_series = np.pad(scaled_series, ((0, diff), (0, 0)), mode="constant")
@@ -678,7 +678,7 @@ class DeepForecastingModelBase(ModelBase):
         if self.model is None:
             raise ValueError("Model not trained. Call the fit() function first.")
 
-        # seq_len=1440；horizon:672 两者相加为2112
+        # seq_len=1440; horizon:672; sum=2112
         config = self.config
         _, test = split_time(series, len(series) - config.seq_len - horizon)
 
@@ -818,7 +818,7 @@ class DeepForecastingModelBase(ModelBase):
                 flattened_data = input_np.reshape((-1, input_np.shape[-1]))
                 input_np = self.scaler1.transform(flattened_data).reshape(origin_shape)
 
-        # 传入exog_futures,每个batch中对应的未来协变量
+        # Pass exog_futures, corresponding future covariates for each batch
         if exog_futures is not None:
             exog_future = torch.tensor(
                 exog_futures[i * batch_size : (i + 1) * batch_size, -horizon:, :]

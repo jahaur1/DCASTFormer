@@ -105,7 +105,7 @@ class DECOMP(nn.Module):
         return res, moving_average
 
 class DBLoss(nn.Module):
-    """自定义分解损失函数（趋势+季节双损失）"""
+    """Custom decomposition loss function (trend + seasonal dual loss)"""
 
     def __init__(self, alpha, beta):
         super().__init__()
@@ -444,7 +444,7 @@ def anomaly_detection_data_provider(
     )
     return data_loader
 
-# x_dec为未来协变量,ouput为经过series_dim处理后的目标值
+# x_dec is future covariate, output is the target value processed by series_dim
 class MLP(nn.Module):
     def __init__(self, configs):
         super(MLP, self).__init__()

@@ -19,7 +19,7 @@ __all__ = [
     "mase_norm",
     "wape_norm",
     "msmape_norm",
-    "r2",  # 新增
+    "r2",
     "r2_norm",
 ]
 
@@ -249,21 +249,21 @@ def msmape_norm(
     return msmape_per_series
 def r2(actual: np.ndarray, predicted: np.ndarray, **kwargs):
     """
-    决定系数 R-squared (R²)
-    取值范围：(-∞, 1]，越接近1表示拟合效果越好
+    Coefficient of determination R-squared (R²)
+    Range: (-∞, 1], closer to 1 indicates better fit
     """
-    # 总平方和
+    # Total sum of squares
     ss_total = np.sum(np.square(actual - np.mean(actual)))
-    # 残差平方和
+    # Residual sum of squares
     ss_residual = np.sum(np.square(actual - predicted))
-    # 避免除以0
+    # Avoid division by zero
     if ss_total == 0:
         return 0.0
     return 1 - (ss_residual / ss_total)
 
 
 def r2_norm(actual: np.ndarray, predicted: np.ndarray, scaler: object, **kwargs):
-    """归一化数据的决定系数 R-squared (R²)"""
+    """Coefficient of determination R-squared (R²) for normalized data"""
     actual_norm = scaler.transform(actual)
     pred_norm = scaler.transform(predicted)
 

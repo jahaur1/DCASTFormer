@@ -2,8 +2,7 @@
 """
 DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer
 
-修复 TB_DualExogFusion 的 fusion 参数未训练问题。
-支持按数据集调参。
+Support per-dataset hyperparameter tuning.
 """
 import json, os, subprocess, sys
 
@@ -18,9 +17,7 @@ strategy_args = {
     "target_channel": [TP_CHANNEL if TP_ONLY_MODE else DEFAULT_TARGET_CHANNEL],
 }
 
-# =====================================================
-# 基础超参（所有数据集共享）
-# =====================================================
+# Base hyperparameters (shared across all datasets)
 base_params = {
     "batch_size": 64, "seq_len": 96, "horizon": 24, "period": 24,
     "d_model": 128, "d_ff": 128, "n_heads": 4,
@@ -33,29 +30,27 @@ base_params = {
     "num_epochs": 100, "patience": 10, "lradj": "type1", "lr": 0.001, "loss": "MSE",
 }
 
-# =====================================================
-# 按数据集配置参数（方便调参）
-# =====================================================
-# sigmoid(alpha_init) = 初始融合权重
-#   -2.0 → 0.12 (偏向 embedding_concat)
-#    0.0 → 0.50 (中性)
-#    2.0 → 0.88 (偏向 gated_overwrite)
+# Per-dataset parameter configurations (for easy tuning)
+# sigmoid(alpha_init) = initial fusion weight
+#   -2.0 -> 0.12 (biased towards embedding_concat)
+#    0.0 -> 0.50 (neutral)
+#    2.0 -> 0.88 (biased towards gated_overwrite)
 
 DATASET_CONFIGS = {
     "桔子洲2": {
         "lr": 0.001,
-        "alpha_init": 0.0,       # 搜参最优 (sigmoid=0.50)
-        "说明": "搜参最优: alpha=0.0, mse=0.2843",
+        "alpha_init": 0.0,       # Optimal from search (sigmoid=0.50)
+        "note": "Optimal: alpha=0.0, mse=0.2843",
     },
     "三角洲2": {
         "lr": 0.001,
-        "alpha_init": -0.5,      # 搜参最优 (sigmoid=0.38)
-        "说明": "搜参最优: alpha=-0.5, mse=0.2968",
+        "alpha_init": -0.5,      # Optimal from search (sigmoid=0.38)
+        "note": "Optimal: alpha=-0.5, mse=0.2968",
     },
     "捞刀河2": {
         "lr": 0.001,
-        "alpha_init": 3.0,       # 搜参最优 (sigmoid=0.95)
-        "说明": "搜参最优: alpha=3.0, mse=0.0726",
+        "alpha_init": 3.0,       # Optimal from search (sigmoid=0.95)
+        "note": "Optimal: alpha=3.0, mse=0.0726",
     },
 }
 
@@ -71,7 +66,7 @@ for dataset_name, cfg in DATASET_CONFIGS.items():
     print(f"\n{'='*60}")
     print(f"DCASTformer on {dataset_name}")
     print(f"  lr={cfg['lr']}, alpha_init={cfg['alpha_init']}")
-    print(f"  {cfg['说明']}")
+    print(f"  {cfg['note']}")
     print(f"{'='*60}\n")
 
     args = [

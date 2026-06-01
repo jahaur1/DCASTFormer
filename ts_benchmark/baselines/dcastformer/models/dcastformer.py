@@ -1,9 +1,5 @@
 """
 DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer
-
-修复 TB_DualExogFusion 的 fusion 参数未训练问题：
-- 融合组件在 _init_optimizer 中创建（此时 enc_in 已确定）
-- optimizer 包含 fusion 参数，确保被训练
 """
 import torch
 import torch.nn as nn
@@ -53,7 +49,7 @@ class Model(nn.Module):
             nn.Linear(self.num_p * configs.d_model, self.pred_len, bias=False),
         )
 
-        # 融合组件（延迟创建，确保 exog_dim 正确）
+        # Fusion components (lazy creation to ensure exog_dim is correct)
         self.future_gate = None
         self.future_exog_proj = None
         self.future_exog_gate = None
@@ -62,20 +58,20 @@ class Model(nn.Module):
         self._fusion_initialized = False
 
     def init_fusion_components(self, exog_dim, alpha_init=0.0):
-        """在 _init_optimizer 中调用，此时 enc_in 已确定。"""
+        """Called in _init_optimizer when enc_in is already determined."""
         if self._fusion_initialized or exog_dim <= 0:
             self._fusion_initialized = True
             return
 
         device = next(self.parameters()).device
 
-        # gated_overwrite 分支
+        # gated_overwrite branch
         self.future_gate = nn.Sequential(
             nn.Linear(exog_dim * 2, exog_dim),
             nn.Sigmoid(),
         ).to(device)
 
-        # embedding_concat 分支
+        # embedding_concat branch
         self.future_exog_proj = nn.Sequential(
             nn.Linear(exog_dim, self.d_model),
             nn.GELU(),
@@ -86,7 +82,7 @@ class Model(nn.Module):
             nn.Sigmoid(),
         ).to(device)
 
-        # 可学习融合权重
+        # Learnable fusion weight
         self.fusion_alpha_logit = nn.Parameter(torch.tensor(float(alpha_init), device=device))
 
         self.exog_dim = exog_dim
@@ -156,7 +152,7 @@ class Model(nn.Module):
         return x_new
 
     def _path1_gated_overwrite(self, x_enc, exog_future):
-        """分支1: gate * future_exog + (1-gate) * history_exog_tail"""
+        """Branch 1: gate * future_exog + (1-gate) * history_exog_tail"""
         if exog_future is None or self.future_gate is None:
             return x_enc
 
@@ -186,7 +182,7 @@ class Model(nn.Module):
         return x_enc
 
     def _path2_embedding_enhance(self, x_enc_emb, exog_future):
-        """分支2: future_exog → embedding, PatchEmbed 后融合"""
+        """Branch 2: future_exog -> embedding, fusion after PatchEmbed"""
         if self.future_exog_proj is None or self.future_exog_gate is None:
             return x_enc_emb
 
@@ -226,7 +222,7 @@ class Model(nn.Module):
             mean = std = None
             x_enc_norm = x_enc
 
-        # 3. 双分支融合: gated_overwrite + embedding_concat
+        # 3. Dual-branch fusion: gated_overwrite + embedding_concat
         x_enc_gated = self._path1_gated_overwrite(x_enc_norm.clone(), exog_future)
         x_enc_gated_emb = self.patch_embed(x_enc_gated, x_mark_enc)
 

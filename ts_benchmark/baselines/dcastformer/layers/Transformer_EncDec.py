@@ -145,11 +145,11 @@ class CointAttention(nn.Module):
 
     def forward(self, x, attn_mask=None, tau=None, delta=None):
         if self.axial_func is True:
-            # 检查 axial_attn 的维度兼容性
+            # Check axial_attn dimension compatibility
             b, c, n, d = x.shape
             total = b * n * self.num_rc
             if total % (b * n) != 0:
-                # 维度不兼容，fallback 到 full_attn
+                # Dimension incompatible, fallback to full_attn
                 new_x = self.full_attn(x)
             else:
                 try:

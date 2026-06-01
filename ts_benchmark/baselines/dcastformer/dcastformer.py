@@ -23,10 +23,6 @@ MODEL_HYPER_PARAMS = {
 class DCASTformer(DeepForecastingModelBase):
     """
     DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer.
-
-    修复 TB_DualExogFusion 的 fusion 参数未训练问题：
-    - 融合组件在 _init_optimizer 中创建（此时 enc_in 已确定）
-    - optimizer 包含 fusion 参数，确保被训练
     """
 
     def __init__(self, **kwargs):
@@ -51,7 +47,7 @@ class DCASTformer(DeepForecastingModelBase):
         return nn.MSELoss() if self.config.loss == "MSE" else nn.L1Loss()
 
     def _init_model(self):
-        # 用默认值创建模型
+        # Create model with default values
         if not hasattr(self.config, "output_dim"):
             self.config.output_dim = 1
         if not hasattr(self.config, "input_dim"):
@@ -59,21 +55,21 @@ class DCASTformer(DeepForecastingModelBase):
         return DCASTformer_model(self.config)
 
     def _init_optimizer(self, CovariateFusion=None):
-        # 此时 enc_in 已被框架设置，初始化融合组件
+        # enc_in has been set by the framework, initialize fusion components
         enc_in = getattr(self.config, "enc_in", 1)
         series_dim = getattr(self.config, "series_dim", enc_in)
         exog_dim = max(enc_in - series_dim, 0)
 
-        # 更新模型的 c_in 和 exog_dim
+        # Update model's c_in and exog_dim
         self.model.c_in = enc_in
         self.model.exog_dim = exog_dim
 
-        # 初始化融合组件（如果需要）
+        # Initialize fusion components (if needed)
         if exog_dim > 0 and not self.model._fusion_initialized:
             alpha_init = getattr(self.config, "alpha_init", 0.0)
             self.model.init_fusion_components(exog_dim, alpha_init)
 
-        # 创建 optimizer（包含 fusion 参数）
+        # Create optimizer
         if CovariateFusion is not None:
             optimizer = optim.Adam([
                 {"params": self.model.parameters(), "lr": self.config.lr},

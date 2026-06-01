@@ -2,7 +2,6 @@
 """
 DCASTformer: Dual-Channel Adaptive Spatio-Temporal Transformer
 
-Support per-dataset hyperparameter tuning.
 """
 import json, os, subprocess, sys
 
@@ -17,7 +16,6 @@ strategy_args = {
     "target_channel": [TP_CHANNEL if TP_ONLY_MODE else DEFAULT_TARGET_CHANNEL],
 }
 
-# Base hyperparameters (shared across all datasets)
 base_params = {
     "batch_size": 64, "seq_len": 96, "horizon": 24, "period": 24,
     "d_model": 128, "d_ff": 128, "n_heads": 4,
@@ -30,26 +28,22 @@ base_params = {
     "num_epochs": 100, "patience": 10, "lradj": "type1", "lr": 0.001, "loss": "MSE",
 }
 
-# Per-dataset parameter configurations (for easy tuning)
-# sigmoid(alpha_init) = initial fusion weight
-#   -2.0 -> 0.12 (biased towards embedding_concat)
-#    0.0 -> 0.50 (neutral)
-#    2.0 -> 0.88 (biased towards gated_overwrite)
+
 
 DATASET_CONFIGS = {
-    "桔子洲2": {
+    "juzizhou": {
         "lr": 0.001,
-        "alpha_init": 0.0,       # Optimal from search (sigmoid=0.50)
+        "alpha_init": 0.0,       
         "note": "Optimal: alpha=0.0, mse=0.2843",
     },
-    "三角洲2": {
+    "sanjiaozhou": {
         "lr": 0.001,
-        "alpha_init": -0.5,      # Optimal from search (sigmoid=0.38)
+        "alpha_init": -0.5,     
         "note": "Optimal: alpha=-0.5, mse=0.2968",
     },
-    "捞刀河2": {
+    "laodaohe": {
         "lr": 0.001,
-        "alpha_init": 3.0,       # Optimal from search (sigmoid=0.95)
+        "alpha_init": 3.0,       
         "note": "Optimal: alpha=3.0, mse=0.0726",
     },
 }

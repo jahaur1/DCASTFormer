@@ -1,0 +1,17 @@
+# Dataset files
+dataset/
+
+# Result files
+result/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db

@@ -3,13 +3,18 @@ dataset/
 
 # Result files
 result/
+*.tar.gz
 
 # Ablation scripts
 Run_ablation_*.py
+ablation_study_results.md
 
 # Python cache
 __pycache__/
 *.pyc
+
+# Log files
+*.log
 
 # IDE
 .vscode/

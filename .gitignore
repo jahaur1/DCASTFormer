@@ -4,6 +4,9 @@ dataset/
 # Result files
 result/
 
+# Ablation scripts
+Run_ablation_*.py
+
 # Python cache
 __pycache__/
 *.pyc

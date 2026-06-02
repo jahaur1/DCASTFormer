@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-# Simplified version: only keep dependencies required by DCASTFormer
-__all__ = []
+__all__ = ["TemporalFusionTransformer"]
+from ts_benchmark.baselines.time_series_library.models.TemporalFusionTransformer import TemporalFusionTransformer

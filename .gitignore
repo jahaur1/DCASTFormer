@@ -9,6 +9,9 @@ result/
 Run_ablation_*.py
 ablation_study_results.md
 
+# Backup files
+*_backup.py
+
 # Python cache
 __pycache__/
 *.pyc

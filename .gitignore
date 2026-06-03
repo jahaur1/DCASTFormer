@@ -9,6 +9,24 @@ result/
 Run_ablation_*.py
 ablation_study_results.md
 
+# Other model run scripts (only keep Run_DCASTformer.py)
+Run_DLinear.py
+Run_FEDformer.py
+Run_informer.py
+Run_LSTM.py
+Run_TFT.py
+Run_TiDE.py
+Run_TimeXer.py
+Run_DCASTformer_simple.py
+Run_DCASTformer_v1.py
+
+# Alternative model versions (not uploaded)
+ts_benchmark/baselines/dcastformer/dcastformer_simple.py
+ts_benchmark/baselines/dcastformer/models/dcastformer_simple.py
+
+# Leaderboard
+全模型排行榜.md
+
 # Backup files
 *_backup.py
 

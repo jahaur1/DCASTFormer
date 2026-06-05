@@ -394,7 +394,7 @@ class TemporalFusionTransformer(nn.Module):
         self.label_len = configs.label_len
         self.pred_len = configs.pred_len
 
-        # Number of variables (fallback: 用 enc_in 作为 observed 数量)
+        # Number of variables (fallback: use enc_in as observed count)
         if configs.data in datatype_dict:
             self.static_len = len(datatype_dict[configs.data].static)
             self.observed_len = len(datatype_dict[configs.data].observed)

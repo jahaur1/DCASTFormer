@@ -79,7 +79,7 @@ class CovCausalityEncoder(nn.Module):
     def forward(self, x, exog_future, use_exog=True):
         # Normalization from Non-stationary Transformer
 
-        # TODO 尝试删除归一化反归一化
+        # TODO Try removing normalization and denormalization
         exog_history = x[:, :, self.series_dim:]
         x_history = x[:, :, :self.series_dim]
 
@@ -131,7 +131,7 @@ class CovCausalityEncoder(nn.Module):
         future_out = torch.cat(future_outs, dim=-1)
 
         cov_causality_loss = self.criterion(history_out, x_history) if use_exog else 0
-        # TODO qiu 反归一化方式
+        # TODO Denormalization method
         return future_out, cov_causality_loss
 
     def _build_encoder(self, d_model, d_ff, n_heads, dropout, activation, output_attention, factor, e_layers):
@@ -150,7 +150,7 @@ class CovCausalityEncoder(nn.Module):
             norm_layer=torch.nn.LayerNorm(d_model)
         )
 
-    def sample_norm(self, x, means, stdev):  # TODO 改为batch级别
+    def sample_norm(self, x, means, stdev):  # TODO Change to batch level
         x = x - means
         x /= stdev
         return x

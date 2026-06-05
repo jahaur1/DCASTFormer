@@ -247,12 +247,12 @@ class TiDE(nn.Module):
                     dim=-1,
                 )
             elif self.configs.use_future_exog == True:
-                # 协变量个数
+                # Number of covariates
                 series_dim = x_enc.shape[-1] - x_dec.shape[-1]
-                # 拼接长度为L+H的协变量
+                # Concatenate covariates of length L+H
                 batch_y_mark = torch.concat([x_enc[:, :, series_dim:], x_dec], dim=1)
                 batch_y_mark = batch_y_mark.to(dtype=torch.float32)
-                # 遍历计算所有协变量
+                # Iterate and compute all covariates
                 dec_out = torch.stack(
                     [
                         self.forecast(

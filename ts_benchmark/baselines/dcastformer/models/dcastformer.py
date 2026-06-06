@@ -1,14 +1,12 @@
 """
 DCASTFormer: Dual-Channel Adaptive Spatio-Temporal Transformer
-
-Simplified version: Only Temporal Encoder (IntAttention) without PeriodNorm
 """
 import torch
 import torch.nn as nn
 
 from ts_benchmark.baselines.dcastformer.layers.Embed import PatchEmbed
 from ts_benchmark.baselines.dcastformer.layers.SelfAttention_Family import TSMixer, ResAttention
-from ts_benchmark.baselines.dcastformer.layers.Transformer_EncDec import TSEncoder, IntAttention
+from ts_benchmark.baselines.dcastformer.layers.Transformer_EncDec import TSEncoder, IntAttention, CointAttention
 
 
 class Model(nn.Module):
@@ -25,10 +23,16 @@ class Model(nn.Module):
         self.use_future_exog = getattr(configs, "use_future_exog", True)
         self.use_history_exog = getattr(configs, "use_history_exog", True)
         self.configs = configs
+        self.attn_mode = getattr(configs, "attn_mode", "full")
+        # Fusion mode: dual, only_overwrite, only_embedding, concat, future_adapter
         self.fusion_mode = getattr(configs, "fusion_mode", "dual")
+        # Alpha mode: "learnable" or "fixed"
         self.alpha_mode = getattr(configs, "alpha_mode", "learnable")
+        # Fixed alpha value (only used when alpha_mode="fixed")
         self.alpha_fixed = getattr(configs, "alpha_fixed", 0.5)
+        # Future exog processing mode: "normal", "shuffled", "noise", "last_step", "mean_pool"
         self.future_exog_mode = getattr(configs, "future_exog_mode", "normal")
+        self.layer_order = getattr(configs, "layer_order", "int_coint")
         self.infer_use_future = getattr(configs, "infer_use_future", False)
 
         # Patch setting
@@ -40,12 +44,17 @@ class Model(nn.Module):
 
         self.patch_embed = PatchEmbed(configs, num_p=self.num_p)
 
-        # Encoder: Only temporal encoder (IntAttention) without PeriodNorm
-        ia_layers = getattr(configs, "ia_layers", 1)
-        layers = []
-        for _ in range(ia_layers):
-            layers.append(self.build_temporal_encoder(configs))
-        self.encoder = TSEncoder(layers)
+        # Encoder
+        self.temporal_encoder = None
+        self.covariate_encoder = None
+        layers = self.layers_init(configs)
+        if self.attn_mode == "none":
+            self.encoder = nn.Identity()
+        elif self.attn_mode == "parallel":
+            # Parallel mode: layers_init already created temporal_encoder and covariate_encoder
+            self.encoder = nn.Identity()  # Dummy, not used
+        else:
+            self.encoder = TSEncoder(layers)
 
         # Decoder
         self.decoder = nn.Sequential(
@@ -102,13 +111,66 @@ class Model(nn.Module):
         self._fusion_initialized = True
 
     def build_temporal_encoder(self, configs):
-        """Build temporal encoder WITHOUT PeriodNorm (stable=False)"""
+        use_period_norm = getattr(configs, "use_period_norm", True)
         return IntAttention(
             TSMixer(ResAttention(attention_dropout=configs.attn_dropout), configs.d_model, configs.n_heads),
             configs.d_model, configs.d_ff,
             dropout=configs.dropout, stable_len=configs.stable_len,
-            activation=configs.activation, stable=False, enc_in=self.c_in,
+            activation=configs.activation, stable=use_period_norm, enc_in=self.c_in,
         )
+
+    def build_covariate_encoder(self, configs):
+        return CointAttention(
+            TSMixer(ResAttention(attention_dropout=configs.attn_dropout), configs.d_model, configs.n_heads),
+            configs.d_model, configs.d_ff,
+            dropout=configs.dropout, activation=configs.activation,
+            stable=False, enc_in=self.c_in, stable_len=configs.stable_len,
+        )
+
+    def layers_init(self, configs):
+        layers = []
+        ia_layers = getattr(configs, "ia_layers", 1)
+        ca_layers = getattr(configs, "ca_layers", 1)
+
+        if self.attn_mode == "none":
+            return layers
+        if self.attn_mode == "only_int":
+            for _ in range(ia_layers):
+                layers.append(self.build_temporal_encoder(configs))
+            return layers
+        if self.attn_mode == "only_coint":
+            for _ in range(ca_layers):
+                layers.append(self.build_covariate_encoder(configs))
+            return layers
+        if self.attn_mode == "full":
+            if self.layer_order == "int_coint":
+                for _ in range(ia_layers):
+                    layers.append(self.build_temporal_encoder(configs))
+                for _ in range(ca_layers):
+                    layers.append(self.build_covariate_encoder(configs))
+            elif self.layer_order == "coint_int":
+                for _ in range(ca_layers):
+                    layers.append(self.build_covariate_encoder(configs))
+                for _ in range(ia_layers):
+                    layers.append(self.build_temporal_encoder(configs))
+            elif self.layer_order == "interleave":
+                n = max(ia_layers, ca_layers)
+                for i in range(n):
+                    if i < ia_layers:
+                        layers.append(self.build_temporal_encoder(configs))
+                    if i < ca_layers:
+                        layers.append(self.build_covariate_encoder(configs))
+            return layers
+        if self.attn_mode == "parallel":
+            # Parallel mode: store both encoders separately
+            self.temporal_encoder = TSEncoder(
+                [self.build_temporal_encoder(configs) for _ in range(ia_layers)]
+            )
+            self.covariate_encoder = TSEncoder(
+                [self.build_covariate_encoder(configs) for _ in range(ca_layers)]
+            )
+            return []  # Empty list, we'll handle parallel encoding in forecast
+        return layers
 
     def _remove_history_exog(self, x_enc):
         if self.use_history_exog:
@@ -187,13 +249,17 @@ class Model(nn.Module):
         # 0.1. Process future exog based on mode
         if exog_future is not None and self.future_exog_mode != "normal":
             if self.future_exog_mode == "shuffled":
+                # Shuffle along time dimension
                 idx = torch.randperm(exog_future.shape[1])
                 exog_future = exog_future[:, idx, :]
             elif self.future_exog_mode == "noise":
+                # Replace with random noise (same shape and device)
                 exog_future = torch.randn_like(exog_future)
             elif self.future_exog_mode == "last_step":
+                # Only use the last time step, repeat it
                 exog_future = exog_future[:, -1:, :].expand_as(exog_future)
             elif self.future_exog_mode == "mean_pool":
+                # Mean pool over time dimension, repeat it
                 exog_future = exog_future.mean(dim=1, keepdim=True).expand_as(exog_future)
 
         # 1. history exog ablation
@@ -212,6 +278,7 @@ class Model(nn.Module):
         x_enc_base_emb = self.patch_embed(x_enc_norm, x_mark_enc)
 
         if self.fusion_mode == "dual":
+            # Full dual-path: gated_overwrite + embedding_concat with adaptive fusion
             x_enc_gated = self._path1_gated_overwrite(x_enc_norm.clone(), exog_future)
             x_enc_gated_emb = self.patch_embed(x_enc_gated, x_mark_enc)
 
@@ -220,6 +287,7 @@ class Model(nn.Module):
             else:
                 x_enc_concat_emb = x_enc_base_emb
 
+            # Determine alpha value
             if self.alpha_mode == "fixed":
                 alpha = self.alpha_fixed
             elif self.fusion_alpha_logit is not None:
@@ -230,22 +298,27 @@ class Model(nn.Module):
             x_enc_emb = alpha * x_enc_gated_emb + (1 - alpha) * x_enc_concat_emb
 
         elif self.fusion_mode == "only_overwrite":
+            # Only gated overwrite path
             x_enc_gated = self._path1_gated_overwrite(x_enc_norm.clone(), exog_future)
             x_enc_emb = self.patch_embed(x_enc_gated, x_mark_enc)
 
         elif self.fusion_mode == "only_embedding":
+            # Only embedding enhancement path
             if exog_future is not None and self.exog_dim > 0:
                 x_enc_emb = self._path2_embedding_enhance(x_enc_base_emb, exog_future)
             else:
                 x_enc_emb = x_enc_base_emb
 
         elif self.fusion_mode == "concat":
+            # Simple concatenation: just use base embedding (exog already in input)
             x_enc_emb = x_enc_base_emb
 
         elif self.fusion_mode == "future_adapter":
+            # Future adapter: encode future covariates independently, then add to embedding
             if exog_future is not None and self.exog_dim > 0 and self.future_adapter is not None:
-                fut_emb = self.future_adapter(exog_future)
-                fut_emb_mean = fut_emb.mean(dim=1)
+                fut_emb = self.future_adapter(exog_future)  # [B, pred_len, d_model]
+                fut_emb_mean = fut_emb.mean(dim=1)  # [B, d_model]
+                # Reshape to match x_enc_base_emb dimensions
                 for _ in range(x_enc_base_emb.ndim - 2):
                     fut_emb_mean = fut_emb_mean.unsqueeze(1)
                 x_enc_emb = x_enc_base_emb + fut_emb_mean
@@ -253,16 +326,26 @@ class Model(nn.Module):
                 x_enc_emb = x_enc_base_emb
 
         else:
+            # Default: use base embedding
             x_enc_emb = x_enc_base_emb
 
-        # 4. Encoder (only temporal encoder)
-        enc_out = self.encoder(x_enc_emb)[0]
+        # 6. Encoder
+        if self.attn_mode == "none":
+            enc_out = x_enc_emb
+        elif self.attn_mode == "parallel":
+            # Parallel mode: run both encoders and average
+            temporal_out = self.temporal_encoder(x_enc_emb)[0]
+            covariate_out = self.covariate_encoder(x_enc_emb)[0]
+            enc_out = (temporal_out + covariate_out) / 2
+        else:
+            enc_out = self.encoder(x_enc_emb)[0]
+
         enc_out = enc_out[:, :self.c_in, ...]
 
-        # 5. Decoder
+        # 7. Decoder
         dec_out = self.decoder(enc_out).transpose(-1, -2)
 
-        # 6. De-normalization
+        # 8. De-normalization
         if self.revin:
             dec_out = dec_out * std + mean
 
